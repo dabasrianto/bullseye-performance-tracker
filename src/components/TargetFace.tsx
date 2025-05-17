@@ -68,23 +68,28 @@ const TargetFace: React.FC<TargetFaceProps> = ({
         className="cursor-crosshair"
       >
         {/* Outer circles first (background) */}
-        {rings.map((_, i) => (
-          <circle
-            key={`ring-${i}`}
-            cx={center}
-            cy={center}
-            r={(10 - i) * ringWidth}
-            className={`target-ring-${i + 1} transition-colors`}
-            strokeWidth={2}
-          />
-        ))}
+        {rings.map((score, i) => {
+          // Define which CSS class to use based on the ring score
+          const ringClass = `target-ring-${i + 1}`;
+          
+          return (
+            <circle
+              key={`ring-${i}`}
+              cx={center}
+              cy={center}
+              r={(10 - i) * ringWidth}
+              className={ringClass}
+              strokeWidth={2}
+            />
+          );
+        })}
         
         {/* X-ring (center) */}
         <circle
           cx={center}
           cy={center}
           r={xRingRadius}
-          className="target-x transition-colors"
+          className="target-x"
           strokeWidth={2}
         />
         
