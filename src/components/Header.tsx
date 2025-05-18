@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { User, Settings, LogIn } from "lucide-react";
+import { User, Settings, LogIn, Trophy } from "lucide-react";
 
 const Header = () => {
   return (
@@ -26,6 +26,10 @@ const Header = () => {
           <Link to="/input-skor" className="text-archery-text hover:text-archery-blue font-medium transition-colors">Input Skor</Link>
           <Link to="/analisis" className="text-archery-text hover:text-archery-blue font-medium transition-colors">Analisis</Link>
           <Link to="/riwayat" className="text-archery-text hover:text-archery-blue font-medium transition-colors">Riwayat</Link>
+          <Link to="/turnamen" className="text-archery-text hover:text-archery-blue font-medium transition-colors flex items-center">
+            <Trophy className="mr-1 h-4 w-4" />
+            Turnamen
+          </Link>
         </nav>
         
         <div className="flex items-center space-x-2">
