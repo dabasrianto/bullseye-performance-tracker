@@ -3,6 +3,10 @@ import React from 'react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import FeaturedContent from '@/components/FeaturedContent';
+import { useAdmin } from '@/context/AdminContext';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const mockData = [
   { date: '15/05', score: 325 },
@@ -14,16 +18,27 @@ const mockData = [
 ];
 
 const Dashboard = () => {
+  const { featuredContent } = useAdmin();
+  
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
       <main className="flex-1 container mx-auto py-8 px-4 md:px-8">
         <div className="mb-8 animate-fade-in">
-          <h2 className="text-3xl font-bold text-archery-darkBlue mb-2">Dashboard</h2>
-          <p className="text-gray-600 max-w-3xl">
-            Selamat datang di ArcherScore! Pantau performa panahan, catat skor, dan analisis perkembangan Anda secara real-time.
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-archery-darkBlue mb-2">Dashboard</h2>
+              <p className="text-gray-600 max-w-3xl">
+                Selamat datang di ArcherScore! Pantau performa panahan, catat skor, dan analisis perkembangan Anda secara real-time.
+              </p>
+            </div>
+            
+            {/* Link ke Admin Dashboard hanya untuk demo */}
+            <Button asChild variant="outline">
+              <Link to="/admin">Admin Dashboard</Link>
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -57,6 +72,16 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Menampilkan konten yang dimanage oleh Admin */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Konten Terbaru</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeaturedContent items={featuredContent} />
+          </CardContent>
+        </Card>
         
         <Card className="mb-8">
           <CardHeader>
