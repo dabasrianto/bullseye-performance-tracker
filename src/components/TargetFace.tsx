@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +56,7 @@ const TargetFace: React.FC<TargetFaceProps> = ({
       onScoreSelect(score === 11 ? 10 : score, { x: dx / center, y: dy / center });
     }
   };
+  
   
   return (
     <div className={cn("inline-block relative", className)}>

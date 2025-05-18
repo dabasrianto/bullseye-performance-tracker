@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,11 +12,15 @@ interface Score {
   isX: boolean;
 }
 
+interface ScoreInputProps {
+  onScoreSelect: (score: number) => void;
+}
+
 const bowTypes = ['Recurve', 'Compound', 'Barebow', 'Traditional', 'Longbow'];
 const distances = ['10m', '18m', '30m', '50m', '70m', '90m'];
 const roundTypes = ['WA 720', 'Indoor 18m', 'Field', 'Nasional', '3D'];
 
-const ScoreInput: React.FC = () => {
+const ScoreInput: React.FC<ScoreInputProps> = ({ onScoreSelect }) => {
   const [activeEnd, setActiveEnd] = useState(1);
   const [scores, setScores] = useState<Record<number, Score[]>>({ 1: [] });
   const [bowType, setBowType] = useState('Recurve');
@@ -36,6 +39,9 @@ const ScoreInput: React.FC = () => {
       }
       return prev;
     });
+
+    // Pass the score up to the parent component
+    onScoreSelect(score);
   };
 
   const addEnd = () => {

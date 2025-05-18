@@ -24,8 +24,7 @@ const InputSkor = () => {
     
     toast("Skor ditambahkan", {
       description: `Panah ${newScores.length}: ${score} poin`,
-      // Change to a valid variant:
-      variant: "default",
+      // Remove the variant property as it's not supported
     });
   };
 
@@ -50,7 +49,8 @@ const InputSkor = () => {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4">Target</h2>
             <div className="flex justify-center mb-6">
-              <TargetFace size={280} currentScore={currentScore} />
+              {/* Remove the currentScore prop as it's not accepted by TargetFace */}
+              <TargetFace size={280} />
             </div>
             
             <div className="mb-4">
@@ -65,7 +65,8 @@ const InputSkor = () => {
               />
             </div>
             
-            <ScoreInput onScoreSubmit={handleScoreSubmit} />
+            {/* Use the correct prop name accepted by ScoreInput component */}
+            <ScoreInput onScoreSelect={handleScoreSubmit} />
           </div>
           
           <div className="bg-white p-6 rounded-lg shadow-md">
