@@ -1,13 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/Header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ScoreInput from '@/components/ScoreInput';
 import StatsSummary from '@/components/StatsSummary';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { toast } from 'sonner';
 
 const Index = () => {
+  // Add state to track scores
+  const [indexScores, setIndexScores] = useState<number[]>([]);
+
+  // Handler function for score selection
+  const handleScoreSelect = (score: number) => {
+    setIndexScores(prev => [...prev, score]);
+    toast("Skor berhasil dicatat", {
+      description: `Skor: ${score} poin`
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -34,7 +46,7 @@ const Index = () => {
             </div>
             
             <TabsContent value="input" className="mt-0">
-              <ScoreInput />
+              <ScoreInput onScoreSelect={handleScoreSelect} />
             </TabsContent>
             
             <TabsContent value="stats" className="mt-0">
