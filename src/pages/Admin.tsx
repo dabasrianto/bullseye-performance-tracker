@@ -32,6 +32,7 @@ const AdminDashboard = () => {
     deleteContent 
   } = useAdmin();
   
+  const [activeTab, setActiveTab] = useState("konten");
   const [newContentTitle, setNewContentTitle] = useState("");
   const [newContentDescription, setNewContentDescription] = useState("");
   const [newTournamentName, setNewTournamentName] = useState("");
@@ -121,37 +122,61 @@ const AdminDashboard = () => {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Dashboard">
+                <SidebarMenuButton 
+                  tooltip="Dashboard" 
+                  isActive={activeTab === "dashboard"}
+                  onClick={() => setActiveTab("dashboard")}
+                >
                   <LayoutDashboard />
                   <span>Dashboard</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Pengguna">
+                <SidebarMenuButton 
+                  tooltip="Pengguna" 
+                  isActive={activeTab === "pengguna"}
+                  onClick={() => setActiveTab("pengguna")}
+                >
                   <Users />
                   <span>Pengguna</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Turnamen">
+                <SidebarMenuButton 
+                  tooltip="Turnamen" 
+                  isActive={activeTab === "turnamen"}
+                  onClick={() => setActiveTab("turnamen")}
+                >
                   <Calendar />
                   <span>Turnamen</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Analisis">
+                <SidebarMenuButton 
+                  tooltip="Analisis" 
+                  isActive={activeTab === "statistik"}
+                  onClick={() => setActiveTab("statistik")}
+                >
                   <BarChart2 />
                   <span>Analisis</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Konten">
+                <SidebarMenuButton 
+                  tooltip="Konten" 
+                  isActive={activeTab === "konten"}
+                  onClick={() => setActiveTab("konten")}
+                >
                   <FileText />
                   <span>Konten</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Pengaturan">
+                <SidebarMenuButton 
+                  tooltip="Pengaturan" 
+                  isActive={activeTab === "pengaturan"}
+                  onClick={() => setActiveTab("pengaturan")}
+                >
                   <Settings />
                   <span>Pengaturan</span>
                 </SidebarMenuButton>
@@ -173,13 +198,72 @@ const AdminDashboard = () => {
           </header>
           
           <main className="container mx-auto py-6 px-4 md:px-6">
-            <Tabs defaultValue="konten">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="mb-6">
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="konten">Manajemen Konten</TabsTrigger>
                 <TabsTrigger value="pengguna">Pengguna</TabsTrigger>
                 <TabsTrigger value="turnamen">Turnamen</TabsTrigger>
                 <TabsTrigger value="statistik">Statistik</TabsTrigger>
+                <TabsTrigger value="pengaturan">Pengaturan</TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="dashboard" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Total Pengguna</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-archery-blue">{users.length}</div>
+                      <p className="text-sm text-muted-foreground">Pengguna terdaftar</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Total Turnamen</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-archery-orange">{tournaments.length}</div>
+                      <p className="text-sm text-muted-foreground">Turnamen tersedia</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Konten Aktif</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-archery-darkBlue">
+                        {featuredContent.filter(c => c.isActive).length}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Konten dipublikasikan</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ringkasan Sistem</CardTitle>
+                    <CardDescription>Informasi umum sistem ArcherScore</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium">Total Sesi Latihan</p>
+                          <p className="text-2xl font-bold">{analytics.totalSessions}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Rata-rata Skor</p>
+                          <p className="text-2xl font-bold">{analytics.averageScore.toFixed(1)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
               
               <TabsContent value="konten" className="space-y-6">
                 <Card>
@@ -556,6 +640,71 @@ const AdminDashboard = () => {
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="pengaturan" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pengaturan Sistem</CardTitle>
+                    <CardDescription>Kelola pengaturan umum aplikasi ArcherScore</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Pengaturan Umum</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Nama Aplikasi</label>
+                          <Input defaultValue="ArcherScore" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Versi</label>
+                          <Input defaultValue="1.0.0" disabled />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Pengaturan Turnamen</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Maksimal Peserta per Turnamen</label>
+                          <Input type="number" defaultValue="100" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Divisi Default</label>
+                          <Select defaultValue="recurve">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="recurve">Recurve</SelectItem>
+                              <SelectItem value="compound">Compound</SelectItem>
+                              <SelectItem value="barebow">Barebow</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Storage & Backup</h3>
+                      <div className="flex flex-col space-y-2">
+                        <Button variant="outline" className="w-fit">
+                          Export Data ke JSON
+                        </Button>
+                        <Button variant="outline" className="w-fit">
+                          Clear All Data (Reset)
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                          Data saat ini disimpan di localStorage browser
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button>Simpan Pengaturan</Button>
+                  </CardFooter>
+                </Card>
               </TabsContent>
             </Tabs>
           </main>
