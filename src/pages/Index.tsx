@@ -1,131 +1,106 @@
 
-import React, { useState } from 'react';
-import Header from '@/components/Header';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ScoreInput from '@/components/ScoreInput';
-import StatsSummary from '@/components/StatsSummary';
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Target, BarChart3, Trophy, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from '@/context/AuthContext';
+import Header from '@/components/Header';
 
 const Index = () => {
-  // Add state to track scores
-  const [indexScores, setIndexScores] = useState<number[]>([]);
-
-  // Handler function for score selection
-  const handleScoreSelect = (score: number) => {
-    setIndexScores(prev => [...prev, score]);
-    toast("Skor berhasil dicatat", {
-      description: `Skor: ${score} poin`
-    });
-  };
+  const { isAuthenticated } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-archery-blue/5 to-archery-orange/5">
       <Header />
       
-      <main className="flex-1 container mx-auto py-8 px-4 md:px-8">
-        <div className="mb-8 animate-fade-in">
-          <h2 className="text-3xl font-bold text-archery-darkBlue mb-2">Dashboard Panahan</h2>
-          <p className="text-gray-600 max-w-3xl">
-            Selamat datang di ArcherScore! Pantau performa panahan, catat skor, dan analisis perkembangan Anda secara real-time.
+      <main className="container mx-auto px-4 py-12 md:py-20">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-6xl font-bold text-archery-darkBlue mb-6">
+            ArcherScore
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Aplikasi scoring panahan profesional dengan standar World Archery. 
+            Catat skor, analisis performa, dan kelola turnamen dengan mudah.
           </p>
+          <div className="text-center space-y-4">
+            <Button asChild size="lg" className="bg-archery-blue hover:bg-archery-darkBlue">
+              <Link to={isAuthenticated ? "/dashboard" : "/login"}>
+                {isAuthenticated ? "Ke Dashboard" : "Mulai Sekarang"}
+              </Link>
+            </Button>
+            <p className="text-sm text-gray-600">
+              Gratis untuk semua pemanah
+            </p>
+          </div>
         </div>
-        
-        <div className="mb-8">
-          <Tabs defaultValue="input" className="w-full">
-            <div className="flex justify-between items-center mb-6">
-              <TabsList className="grid grid-cols-2 w-[400px]">
-                <TabsTrigger value="input">Input Skor</TabsTrigger>
-                <TabsTrigger value="stats">Statistik</TabsTrigger>
-              </TabsList>
-              
-              <Button className="bg-archery-orange hover:bg-archery-darkOrange">
-                <Plus className="mr-2 h-4 w-4" /> Sesi Baru
-              </Button>
-            </div>
-            
-            <TabsContent value="input" className="mt-0">
-              <ScoreInput onScoreSelect={handleScoreSelect} />
-            </TabsContent>
-            
-            <TabsContent value="stats" className="mt-0">
-              <StatsSummary />
-            </TabsContent>
-          </Tabs>
+
+        {/* Features Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <Card className="text-center">
+            <CardHeader>
+              <Target className="h-12 w-12 text-archery-blue mx-auto mb-4" />
+              <CardTitle>Scoring Akurat</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Target face sesuai standar World Archery dengan sistem scoring yang presisi
+              </CardDescription>
+            </CardContent>
+          </Card>
+          
+          <Card className="text-center">
+            <CardHeader>
+              <BarChart3 className="h-12 w-12 text-archery-orange mx-auto mb-4" />
+              <CardTitle>Analisis Mendalam</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Grafik performa, statistik detil, dan insight untuk meningkatkan kemampuan
+              </CardDescription>
+            </CardContent>
+          </Card>
+          
+          <Card className="text-center">
+            <CardHeader>
+              <Trophy className="h-12 w-12 text-archery-darkBlue mx-auto mb-4" />
+              <CardTitle>Manajemen Turnamen</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Kelola turnamen, jadwal, dan leaderboard dengan sistem yang terintegrasi
+              </CardDescription>
+            </CardContent>
+          </Card>
+          
+          <Card className="text-center">
+            <CardHeader>
+              <Users className="h-12 w-12 text-archery-blue mx-auto mb-4" />
+              <CardTitle>Multi User</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Support untuk pelatih, atlet, dan admin dengan role yang berbeda
+              </CardDescription>
+            </CardContent>
+          </Card>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
-          <div className="rounded-lg border bg-card p-6 shadow-sm">
-            <h3 className="font-semibold text-lg mb-2">Sesi Terbaru</h3>
-            <div className="space-y-3">
-              <div className="border-b pb-2">
-                <p className="font-medium">WA 720 - Recurve 70m</p>
-                <div className="flex justify-between text-sm">
-                  <span>25 Mei 2024</span>
-                  <span className="font-bold text-archery-blue">570 / 720</span>
-                </div>
-              </div>
-              <div className="border-b pb-2">
-                <p className="font-medium">Indoor 18m - Compound</p>
-                <div className="flex justify-between text-sm">
-                  <span>20 Mei 2024</span>
-                  <span className="font-bold text-archery-blue">290 / 300</span>
-                </div>
-              </div>
-              <div>
-                <p className="font-medium">Field - Barebow</p>
-                <div className="flex justify-between text-sm">
-                  <span>15 Mei 2024</span>
-                  <span className="font-bold text-archery-blue">325 / 432</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg border bg-card p-6 shadow-sm">
-            <h3 className="font-semibold text-lg mb-2">Personal Bests</h3>
-            <div className="space-y-3">
-              <div className="border-b pb-2">
-                <p className="font-medium">WA 720 (70m)</p>
-                <div className="flex justify-between text-sm">
-                  <span>Recurve</span>
-                  <span className="font-bold text-archery-orange">570 pts</span>
-                </div>
-              </div>
-              <div className="border-b pb-2">
-                <p className="font-medium">Indoor 18m</p>
-                <div className="flex justify-between text-sm">
-                  <span>Compound</span>
-                  <span className="font-bold text-archery-orange">295 pts</span>
-                </div>
-              </div>
-              <div>
-                <p className="font-medium">Field</p>
-                <div className="flex justify-between text-sm">
-                  <span>Barebow</span>
-                  <span className="font-bold text-archery-orange">348 pts</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg border bg-gradient-to-br from-archery-blue to-archery-darkBlue p-6 shadow-sm text-white">
-            <h3 className="font-semibold text-lg mb-4">Jadwal Latihan</h3>
-            <div className="space-y-3">
-              <div className="bg-white/10 rounded-md p-3">
-                <p className="font-medium">Selasa, 28 Mei</p>
-                <p className="text-sm text-white/80">Latihan Teknik, 16:00 - 18:00</p>
-              </div>
-              <div className="bg-white/10 rounded-md p-3">
-                <p className="font-medium">Kamis, 30 Mei</p>
-                <p className="text-sm text-white/80">Simulasi Kompetisi, 15:00 - 18:00</p>
-              </div>
-              <Button variant="secondary" className="w-full mt-2 bg-white text-archery-darkBlue hover:bg-gray-100">
-                + Tambah Jadwal
-              </Button>
-            </div>
-          </div>
+
+        {/* CTA Section */}
+        <div className="text-center bg-white rounded-lg p-8 shadow-lg">
+          <h2 className="text-3xl font-bold text-archery-darkBlue mb-4">
+            Siap Meningkatkan Performa Panahan Anda?
+          </h2>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+            Bergabung dengan ribuan pemanah yang sudah menggunakan ArcherScore 
+            untuk mencatat dan menganalisis performa mereka.
+          </p>
+          <Button asChild size="lg" className="bg-archery-orange hover:bg-archery-darkOrange">
+            <Link to={isAuthenticated ? "/dashboard" : "/login"}>
+              Mulai Gratis Sekarang
+            </Link>
+          </Button>
         </div>
       </main>
       

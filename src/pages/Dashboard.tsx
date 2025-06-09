@@ -34,10 +34,6 @@ const Dashboard = () => {
               </p>
             </div>
             
-            {/* Link ke Admin Dashboard hanya untuk demo */}
-            <Button asChild variant="outline">
-              <Link to="/admin">Admin Dashboard</Link>
-            </Button>
           </div>
         </div>
         
