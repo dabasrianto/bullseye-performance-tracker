@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/Admin";
 import Login from "./pages/Login";
 import { AdminProvider } from "./context/AdminContext";
 import { AuthProvider } from "./context/AuthContext";
+import { DataProvider } from "./context/DataContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -26,10 +27,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <AdminProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <DataProvider>
+          <AdminProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -83,6 +85,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </AdminProvider>
+        </DataProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

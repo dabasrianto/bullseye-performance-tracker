@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import FeaturedContent from '@/components/FeaturedContent';
 import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -19,6 +21,17 @@ const mockData = [
 
 const Dashboard = () => {
   const { featuredContent } = useAdmin();
+  const { getAnalytics } = useData();
+  const { user } = useAuth();
+  
+  const analytics = user ? getAnalytics(user.id) : {
+    totalSessions: 0,
+    averageScore: 0,
+    totalXCount: 0,
+    bestScore: 0,
+    progressData: [],
+    scoreDistribution: []
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -43,8 +56,8 @@ const Dashboard = () => {
               <CardTitle>Total Sesi</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-archery-blue">24</div>
-              <p className="text-sm text-gray-500">Sesi bulan ini</p>
+              <div className="text-3xl font-bold text-archery-blue">{analytics.totalSessions}</div>
+              <p className="text-sm text-gray-500">Total sesi</p>
             </CardContent>
           </Card>
           
@@ -53,8 +66,8 @@ const Dashboard = () => {
               <CardTitle>Rata-rata Skor</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-archery-orange">342.5</div>
-              <p className="text-sm text-gray-500">Dari 24 sesi terakhir</p>
+              <div className="text-3xl font-bold text-archery-orange">{analytics.averageScore}</div>
+              <p className="text-sm text-gray-500">Skor rata-rata</p>
             </CardContent>
           </Card>
           
@@ -63,8 +76,8 @@ const Dashboard = () => {
               <CardTitle>X-Count</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-archery-darkBlue">45</div>
-              <p className="text-sm text-gray-500">Total bulan ini</p>
+              <div className="text-3xl font-bold text-archery-darkBlue">{analytics.totalXCount}</div>
+              <p className="text-sm text-gray-500">Total X-Count</p>
             </CardContent>
           </Card>
         </div>
@@ -86,7 +99,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockData}>
+                <LineChart data={analytics.progressData.length > 0 ? analytics.progressData : mockData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />

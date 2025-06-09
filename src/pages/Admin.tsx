@@ -4,49 +4,48 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, Settings, Calendar, BarChart2, FileText } from "lucide-react";
+import { LayoutDashboard, Users, Settings, Calendar, BarChart2, FileText, Trash2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data untuk konten beranda
-const mockFeaturedContent = [
-  { id: 1, title: "Turnamen Nasional 2025", description: "Turnamen panahan terbesar tahun ini", isActive: true },
-  { id: 2, title: "Kelas Pelatihan Pemula", description: "Belajar teknik dasar panahan", isActive: true },
-  { id: 3, title: "Tips Meningkatkan Akurasi", description: "Panduan langkah demi langkah", isActive: false },
-];
-
-// Mock data untuk pengguna
-const mockUsers = [
-  { id: 1, name: "Budi Santoso", email: "budi@example.com", role: "Admin" },
-  { id: 2, name: "Ani Wijaya", email: "ani@example.com", role: "Pelatih" },
-  { id: 3, name: "Deni Pratama", email: "deni@example.com", role: "Atlet" },
-];
-
-// Mock data untuk turnamen
-const mockTournaments = [
-  { id: 1, name: "Turnamen Regional 2025", date: "2025-06-15", location: "Jakarta", status: "Upcoming" },
-  { id: 2, name: "Kejuaraan Provinsi", date: "2025-07-22", location: "Bandung", status: "Upcoming" },
-  { id: 3, name: "Kompetisi Antar Klub", date: "2025-05-10", location: "Surabaya", status: "Completed" },
-];
+import { useData } from '@/context/DataContext';
+import { useAdmin } from '@/context/AdminContext';
 
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [featuredContent, setFeaturedContent] = useState(mockFeaturedContent);
+  const { 
+    tournaments, 
+    addTournament, 
+    updateTournament, 
+    deleteTournament,
+    users,
+    addUser,
+    updateUser,
+    deleteUser,
+    getAllAnalytics
+  } = useData();
+  const { 
+    featuredContent, 
+    addContent, 
+    toggleContentStatus, 
+    deleteContent 
+  } = useAdmin();
+  
   const [newContentTitle, setNewContentTitle] = useState("");
   const [newContentDescription, setNewContentDescription] = useState("");
-  const [users, setUsers] = useState(mockUsers);
-  const [tournaments, setTournaments] = useState(mockTournaments);
+  const [newTournamentName, setNewTournamentName] = useState("");
+  const [newTournamentDate, setNewTournamentDate] = useState("");
+  const [newTournamentLocation, setNewTournamentLocation] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
+  
+  const analytics = getAllAnalytics();
 
   const handleAddContent = () => {
     if (newContentTitle && newContentDescription) {
-      const newContent = {
-        id: featuredContent.length + 1,
-        title: newContentTitle,
-        description: newContentDescription,
-        isActive: true,
-      };
-      setFeaturedContent([...featuredContent, newContent]);
+      addContent(newContentTitle, newContentDescription);
       setNewContentTitle("");
       setNewContentDescription("");
       toast({
@@ -62,24 +61,54 @@ const AdminDashboard = () => {
     }
   };
 
-  const toggleContentStatus = (id: number) => {
-    setFeaturedContent(
-      featuredContent.map(item => 
-        item.id === id ? { ...item, isActive: !item.isActive } : item
-      )
-    );
-    toast({
-      title: "Status berhasil diubah",
-      description: "Status konten telah diperbarui",
-    });
+  const handleAddTournament = () => {
+    if (newTournamentName && newTournamentDate && newTournamentLocation) {
+      addTournament({
+        name: newTournamentName,
+        date: newTournamentDate,
+        location: newTournamentLocation,
+        status: 'upcoming',
+        divisions: ['Recurve', 'Compound'],
+        participants: []
+      });
+      setNewTournamentName("");
+      setNewTournamentDate("");
+      setNewTournamentLocation("");
+      toast({
+        title: "Turnamen berhasil ditambahkan",
+        description: "Turnamen baru telah ditambahkan",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Semua field harus diisi",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteContent = (id: number) => {
-    setFeaturedContent(featuredContent.filter(item => item.id !== id));
-    toast({
-      title: "Konten berhasil dihapus",
-      description: "Konten telah dihapus dari beranda",
-    });
+  const handleAddUser = () => {
+    if (newUserName && newUserEmail) {
+      addUser({
+        name: newUserName,
+        email: newUserEmail,
+        role: newUserRole,
+        joinDate: new Date().toISOString().split('T')[0]
+      });
+      setNewUserName("");
+      setNewUserEmail("");
+      setNewUserRole('user');
+      toast({
+        title: "User berhasil ditambahkan",
+        description: "User baru telah ditambahkan",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Nama dan email harus diisi",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -234,7 +263,52 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="pengguna">
+              <TabsContent value="pengguna" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tambah Pengguna Baru</CardTitle>
+                    <CardDescription>Tambahkan pengguna baru ke sistem</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="userName" className="text-sm font-medium">Nama</label>
+                        <Input 
+                          id="userName" 
+                          value={newUserName} 
+                          onChange={e => setNewUserName(e.target.value)}
+                          placeholder="Masukkan nama lengkap"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="userEmail" className="text-sm font-medium">Email</label>
+                        <Input 
+                          id="userEmail" 
+                          type="email"
+                          value={newUserEmail} 
+                          onChange={e => setNewUserEmail(e.target.value)}
+                          placeholder="Masukkan email"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="userRole" className="text-sm font-medium">Role</label>
+                      <Select value={newUserRole} onValueChange={(value: 'admin' | 'user') => setNewUserRole(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={handleAddUser}>Tambah Pengguna</Button>
+                  </CardFooter>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Daftar Pengguna</CardTitle>
@@ -247,6 +321,7 @@ const AdminDashboard = () => {
                           <TableHead>Nama</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Role</TableHead>
+                          <TableHead>Tanggal Bergabung</TableHead>
                           <TableHead>Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -255,11 +330,31 @@ const AdminDashboard = () => {
                           <TableRow key={user.id}>
                             <TableCell>{user.name}</TableCell>
                             <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.role}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {user.role}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(user.joinDate).toLocaleDateString('id-ID')}
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
-                                <Button variant="outline" size="sm">Edit</Button>
-                                <Button variant="destructive" size="sm">Hapus</Button>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => {
+                                    deleteUser(user.id);
+                                    toast({
+                                      title: "User berhasil dihapus",
+                                      description: "User telah dihapus dari sistem"
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -270,7 +365,48 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="turnamen">
+              <TabsContent value="turnamen" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tambah Turnamen Baru</CardTitle>
+                    <CardDescription>Buat turnamen panahan baru</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="tournamentName" className="text-sm font-medium">Nama Turnamen</label>
+                      <Input 
+                        id="tournamentName" 
+                        value={newTournamentName} 
+                        onChange={e => setNewTournamentName(e.target.value)}
+                        placeholder="Masukkan nama turnamen"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="tournamentDate" className="text-sm font-medium">Tanggal</label>
+                        <Input 
+                          id="tournamentDate" 
+                          type="date"
+                          value={newTournamentDate} 
+                          onChange={e => setNewTournamentDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="tournamentLocation" className="text-sm font-medium">Lokasi</label>
+                        <Input 
+                          id="tournamentLocation" 
+                          value={newTournamentLocation} 
+                          onChange={e => setNewTournamentLocation(e.target.value)}
+                          placeholder="Masukkan lokasi turnamen"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={handleAddTournament}>Tambah Turnamen</Button>
+                  </CardFooter>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Daftar Turnamen</CardTitle>
@@ -284,6 +420,7 @@ const AdminDashboard = () => {
                           <TableHead>Tanggal</TableHead>
                           <TableHead>Lokasi</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Peserta</TableHead>
                           <TableHead>Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -291,17 +428,36 @@ const AdminDashboard = () => {
                         {tournaments.map(tournament => (
                           <TableRow key={tournament.id}>
                             <TableCell>{tournament.name}</TableCell>
-                            <TableCell>{tournament.date}</TableCell>
+                            <TableCell>
+                              {new Date(tournament.date).toLocaleDateString('id-ID')}
+                            </TableCell>
                             <TableCell>{tournament.location}</TableCell>
                             <TableCell>
-                              <span className={`px-2 py-1 text-xs rounded-full ${tournament.status === 'Upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
-                                {tournament.status}
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                tournament.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 
+                                tournament.status === 'ongoing' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {tournament.status === 'upcoming' ? 'Akan Datang' :
+                                 tournament.status === 'ongoing' ? 'Berlangsung' : 'Selesai'}
                               </span>
                             </TableCell>
+                            <TableCell>{tournament.participants.length}</TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
-                                <Button variant="outline" size="sm">Edit</Button>
-                                <Button variant="destructive" size="sm">Hapus</Button>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => {
+                                    deleteTournament(tournament.id);
+                                    toast({
+                                      title: "Turnamen berhasil dihapus",
+                                      description: "Turnamen telah dihapus dari sistem"
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -313,17 +469,46 @@ const AdminDashboard = () => {
               </TabsContent>
               
               <TabsContent value="statistik">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Statistik Aktivitas</CardTitle>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Total Pengguna</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                        Grafik statistik akan ditampilkan di sini
-                      </div>
+                      <div className="text-3xl font-bold text-archery-blue">{users.length}</div>
+                      <p className="text-sm text-gray-500">Terdaftar</p>
                     </CardContent>
                   </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Total Turnamen</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-archery-orange">{tournaments.length}</div>
+                      <p className="text-sm text-gray-500">Tersedia</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Total Sesi</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-archery-darkBlue">{analytics.totalSessions}</div>
+                      <p className="text-sm text-gray-500">Latihan</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">X-Count Total</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-green-600">{analytics.totalXCount}</div>
+                      <p className="text-sm text-gray-500">Keseluruhan</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
                       <CardTitle>Ringkasan Pengguna</CardTitle>
@@ -332,19 +517,40 @@ const AdminDashboard = () => {
                       <div className="space-y-4">
                         <div className="flex justify-between">
                           <span>Total Pengguna</span>
-                          <span className="font-semibold">258</span>
+                          <span className="font-semibold">{users.length}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Pengguna Baru Minggu Ini</span>
-                          <span className="font-semibold">24</span>
+                          <span>Admin</span>
+                          <span className="font-semibold">{users.filter(u => u.role === 'admin').length}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Pengguna Aktif</span>
-                          <span className="font-semibold">187</span>
+                          <span>User Biasa</span>
+                          <span className="font-semibold">{users.filter(u => u.role === 'user').length}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Statistik Turnamen</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex justify-between">
+                          <span>Total Turnamen</span>
+                          <span className="font-semibold">{tournaments.length}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Pelatih</span>
-                          <span className="font-semibold">15</span>
+                          <span>Akan Datang</span>
+                          <span className="font-semibold">{tournaments.filter(t => t.status === 'upcoming').length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Selesai</span>
+                          <span className="font-semibold">{tournaments.filter(t => t.status === 'completed').length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Peserta</span>
+                          <span className="font-semibold">{tournaments.reduce((sum, t) => sum + t.participants.length, 0)}</span>
                         </div>
                       </div>
                     </CardContent>
