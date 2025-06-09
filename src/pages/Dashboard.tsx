@@ -37,67 +37,66 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      <main className="flex-1 container mx-auto py-8 px-4 md:px-8">
-        <div className="mb-8 animate-fade-in">
-          <div className="flex justify-between items-center">
+      <main className="flex-1 container mx-auto py-4 md:py-8 px-4 md:px-8">
+        <div className="mb-6 md:mb-8 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center">
             <div>
-              <h2 className="text-3xl font-bold text-archery-darkBlue mb-2">Dashboard</h2>
-              <p className="text-gray-600 max-w-3xl">
+              <h2 className="text-2xl md:text-3xl font-bold text-archery-darkBlue mb-2">Dashboard</h2>
+              <p className="text-sm md:text-base text-gray-600 max-w-3xl">
                 Selamat datang di ArcherScore! Pantau performa panahan, catat skor, dan analisis perkembangan Anda secara real-time.
               </p>
             </div>
-            
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle>Total Sesi</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Total Sesi</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-archery-blue">{analytics.totalSessions}</div>
-              <p className="text-sm text-gray-500">Total sesi</p>
+              <div className="text-2xl md:text-3xl font-bold text-archery-blue">{analytics.totalSessions}</div>
+              <p className="text-xs md:text-sm text-gray-500">Total sesi</p>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader>
-              <CardTitle>Rata-rata Skor</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Rata-rata Skor</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-archery-orange">{analytics.averageScore}</div>
-              <p className="text-sm text-gray-500">Skor rata-rata</p>
+              <div className="text-2xl md:text-3xl font-bold text-archery-orange">{analytics.averageScore}</div>
+              <p className="text-xs md:text-sm text-gray-500">Skor rata-rata</p>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader>
-              <CardTitle>X-Count</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">X-Count</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-archery-darkBlue">{analytics.totalXCount}</div>
-              <p className="text-sm text-gray-500">Total X-Count</p>
+              <div className="text-2xl md:text-3xl font-bold text-archery-darkBlue">{analytics.totalXCount}</div>
+              <p className="text-xs md:text-sm text-gray-500">Total X-Count</p>
             </CardContent>
           </Card>
         </div>
         
         {/* Menampilkan konten yang dimanage oleh Admin */}
-        <Card className="mb-8">
+        <Card className="mb-6 md:mb-8">
           <CardHeader>
-            <CardTitle>Konten Terbaru</CardTitle>
+            <CardTitle className="text-lg md:text-xl">Konten Terbaru</CardTitle>
           </CardHeader>
           <CardContent>
             <FeaturedContent items={featuredContent} />
           </CardContent>
         </Card>
         
-        <Card className="mb-8">
+        <Card className="mb-6 md:mb-8">
           <CardHeader>
-            <CardTitle>Perkembangan Skor</CardTitle>
+            <CardTitle className="text-lg md:text-xl">Perkembangan Skor</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analytics.progressData.length > 0 ? analytics.progressData : mockData}>
                   <CartesianGrid strokeDasharray="3 3" />
