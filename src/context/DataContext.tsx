@@ -1,4 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy,
+  onSnapshot 
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Tournament {
   id: string;
@@ -145,53 +159,165 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [scoreSessions, setScoreSessions] = useState<ScoreSession[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const { toast } = useToast();
 
-  // Load data from localStorage on mount
+  // Load data from Firebase on mount
   useEffect(() => {
-    const savedTournaments = localStorage.getItem('archerScore_tournaments');
-    const savedSessions = localStorage.getItem('archerScore_sessions');
-    const savedUsers = localStorage.getItem('archerScore_users');
+    const loadData = async () => {
+      try {
+        // Load tournaments
+        const tournamentsSnapshot = await getDocs(collection(db, 'tournaments'));
+        const tournamentsData = tournamentsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Tournament[];
+        setTournaments(tournamentsData.length > 0 ? tournamentsData : initialTournaments);
 
-    setTournaments(savedTournaments ? JSON.parse(savedTournaments) : initialTournaments);
-    setScoreSessions(savedSessions ? JSON.parse(savedSessions) : initialScoreSessions);
-    setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
-  }, []);
+        // Load score sessions
+        const sessionsSnapshot = await getDocs(collection(db, 'scoreSessions'));
+        const sessionsData = sessionsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as ScoreSession[];
+        setScoreSessions(sessionsData.length > 0 ? sessionsData : initialScoreSessions);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem('archerScore_tournaments', JSON.stringify(tournaments));
-  }, [tournaments]);
+        // Load users
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const usersData = usersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as UserProfile[];
+        setUsers(usersData.length > 0 ? usersData : initialUsers);
 
-  useEffect(() => {
-    localStorage.setItem('archerScore_sessions', JSON.stringify(scoreSessions));
-  }, [scoreSessions]);
+        // If no data exists, initialize with default data
+        if (tournamentsData.length === 0) {
+          for (const tournament of initialTournaments) {
+            await addDoc(collection(db, 'tournaments'), tournament);
+          }
+        }
+        if (sessionsData.length === 0) {
+          for (const session of initialScoreSessions) {
+            await addDoc(collection(db, 'scoreSessions'), session);
+          }
+        }
+        if (usersData.length === 0) {
+          for (const user of initialUsers) {
+            await addDoc(collection(db, 'users'), user);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data from Firebase:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load data from Firebase. Using local data.",
+          variant: "destructive"
+        });
+        // Fallback to localStorage
+        const savedTournaments = localStorage.getItem('archerScore_tournaments');
+        const savedSessions = localStorage.getItem('archerScore_sessions');
+        const savedUsers = localStorage.getItem('archerScore_users');
 
-  useEffect(() => {
-    localStorage.setItem('archerScore_users', JSON.stringify(users));
-  }, [users]);
+        setTournaments(savedTournaments ? JSON.parse(savedTournaments) : initialTournaments);
+        setScoreSessions(savedSessions ? JSON.parse(savedSessions) : initialScoreSessions);
+        setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
+      }
+    };
+
+    loadData();
+  }, [toast]);
 
   // Tournament methods
-  const addTournament = (tournament: Omit<Tournament, 'id'>) => {
-    const newTournament = { ...tournament, id: Date.now().toString() };
-    setTournaments([...tournaments, newTournament]);
+  const addTournament = async (tournament: Omit<Tournament, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'tournaments'), tournament);
+      const newTournament = { ...tournament, id: docRef.id };
+      setTournaments([...tournaments, newTournament]);
+      toast({
+        title: "Success",
+        description: "Tournament added successfully"
+      });
+    } catch (error) {
+      console.error('Error adding tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add tournament",
+        variant: "destructive"
+      });
+    }
   };
 
-  const updateTournament = (id: string, updatedTournament: Partial<Tournament>) => {
-    setTournaments(tournaments.map(t => t.id === id ? { ...t, ...updatedTournament } : t));
+  const updateTournament = async (id: string, updatedTournament: Partial<Tournament>) => {
+    try {
+      await updateDoc(doc(db, 'tournaments', id), updatedTournament);
+      setTournaments(tournaments.map(t => t.id === id ? { ...t, ...updatedTournament } : t));
+      toast({
+        title: "Success",
+        description: "Tournament updated successfully"
+      });
+    } catch (error) {
+      console.error('Error updating tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update tournament",
+        variant: "destructive"
+      });
+    }
   };
 
-  const deleteTournament = (id: string) => {
-    setTournaments(tournaments.filter(t => t.id !== id));
+  const deleteTournament = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'tournaments', id));
+      setTournaments(tournaments.filter(t => t.id !== id));
+      toast({
+        title: "Success",
+        description: "Tournament deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete tournament",
+        variant: "destructive"
+      });
+    }
   };
 
   // Score session methods
-  const addScoreSession = (session: Omit<ScoreSession, 'id'>) => {
-    const newSession = { ...session, id: Date.now().toString() };
-    setScoreSessions([...scoreSessions, newSession]);
+  const addScoreSession = async (session: Omit<ScoreSession, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'scoreSessions'), session);
+      const newSession = { ...session, id: docRef.id };
+      setScoreSessions([...scoreSessions, newSession]);
+      toast({
+        title: "Success",
+        description: "Score session saved successfully"
+      });
+    } catch (error) {
+      console.error('Error adding score session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save score session",
+        variant: "destructive"
+      });
+    }
   };
 
-  const deleteScoreSession = (id: string) => {
-    setScoreSessions(scoreSessions.filter(s => s.id !== id));
+  const deleteScoreSession = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'scoreSessions', id));
+      setScoreSessions(scoreSessions.filter(s => s.id !== id));
+      toast({
+        title: "Success",
+        description: "Score session deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting score session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete score session",
+        variant: "destructive"
+      });
+    }
   };
 
   const getUserSessions = (userId: string) => {
@@ -199,17 +325,59 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // User methods
-  const addUser = (user: Omit<UserProfile, 'id'>) => {
-    const newUser = { ...user, id: Date.now().toString() };
-    setUsers([...users, newUser]);
+  const addUser = async (user: Omit<UserProfile, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'users'), user);
+      const newUser = { ...user, id: docRef.id };
+      setUsers([...users, newUser]);
+      toast({
+        title: "Success",
+        description: "User added successfully"
+      });
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add user",
+        variant: "destructive"
+      });
+    }
   };
 
-  const updateUser = (id: string, updatedUser: Partial<UserProfile>) => {
-    setUsers(users.map(u => u.id === id ? { ...u, ...updatedUser } : u));
+  const updateUser = async (id: string, updatedUser: Partial<UserProfile>) => {
+    try {
+      await updateDoc(doc(db, 'users', id), updatedUser);
+      setUsers(users.map(u => u.id === id ? { ...u, ...updatedUser } : u));
+      toast({
+        title: "Success",
+        description: "User updated successfully"
+      });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive"
+      });
+    }
   };
 
-  const deleteUser = (id: string) => {
-    setUsers(users.filter(u => u.id !== id));
+  const deleteUser = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', id));
+      setUsers(users.filter(u => u.id !== id));
+      toast({
+        title: "Success",
+        description: "User deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      });
+    }
   };
 
   // Analytics methods
