@@ -14,8 +14,14 @@ import Turnamen from "./pages/Turnamen";
 import JadwalTurnamen from "./pages/JadwalTurnamen";
 import DetailTurnamen from "./pages/DetailTurnamen";
 import Leaderboard from "./pages/Leaderboard";
-import AdminDashboard from "./pages/Admin";
 import Login from "./pages/Login";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminTournaments from "./pages/admin/AdminTournaments";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminContent from "./pages/admin/AdminContent";
+import AdminSettings from "./pages/admin/AdminSettings";
 import { AdminProvider } from "./context/AdminContext";
 import { AuthProvider } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
@@ -77,9 +83,16 @@ const App = () => (
               } />
               <Route path="/admin" element={
                 <ProtectedRoute requireAdmin={true}>
-                  <AdminDashboard />
+                  <AdminLayout />
                 </ProtectedRoute>
-              } />
+              }>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="tournaments" element={<AdminTournaments />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="content" element={<AdminContent />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
