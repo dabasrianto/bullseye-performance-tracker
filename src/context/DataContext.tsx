@@ -1,18 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  onSnapshot 
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './AuthContext';
 
 export interface Tournament {
   id: string;
@@ -22,6 +11,7 @@ export interface Tournament {
   status: 'upcoming' | 'ongoing' | 'completed';
   divisions: string[];
   participants: string[];
+  created_by?: string;
 }
 
 export interface ScoreSession {
@@ -38,12 +28,13 @@ export interface ScoreSession {
 
 export interface UserProfile {
   id: string;
+  user_id: string;
   name: string;
   email: string;
   role: 'admin' | 'user';
   division?: string;
   club?: string;
-  joinDate: string;
+  created_at: string;
 }
 
 export interface AnalyticsData {
@@ -58,189 +49,175 @@ export interface AnalyticsData {
 interface DataContextType {
   // Tournaments
   tournaments: Tournament[];
-  addTournament: (tournament: Omit<Tournament, 'id'>) => void;
-  updateTournament: (id: string, tournament: Partial<Tournament>) => void;
-  deleteTournament: (id: string) => void;
+  addTournament: (tournament: Omit<Tournament, 'id'>) => Promise<void>;
+  updateTournament: (id: string, tournament: Partial<Tournament>) => Promise<void>;
+  deleteTournament: (id: string) => Promise<void>;
   
   // Score Sessions
   scoreSessions: ScoreSession[];
-  addScoreSession: (session: Omit<ScoreSession, 'id'>) => void;
-  deleteScoreSession: (id: string) => void;
+  addScoreSession: (session: Omit<ScoreSession, 'id'>) => Promise<void>;
+  deleteScoreSession: (id: string) => Promise<void>;
   getUserSessions: (userId: string) => ScoreSession[];
   
   // Users (for admin)
   users: UserProfile[];
-  addUser: (user: Omit<UserProfile, 'id'>) => void;
-  updateUser: (id: string, user: Partial<UserProfile>) => void;
-  deleteUser: (id: string) => void;
+  addUser: (user: Omit<UserProfile, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
+  updateUser: (id: string, user: Partial<UserProfile>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   
   // Analytics
   getAnalytics: (userId: string) => AnalyticsData;
   getAllAnalytics: () => AnalyticsData;
+  
+  // Loading state
+  loading: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
-
-// Initial mock data
-const initialTournaments: Tournament[] = [
-  {
-    id: '1',
-    name: 'Turnamen Regional 2025',
-    date: '2025-06-15',
-    location: 'Jakarta',
-    status: 'upcoming',
-    divisions: ['Recurve', 'Compound', 'Barebow'],
-    participants: []
-  },
-  {
-    id: '2',
-    name: 'Kejuaraan Provinsi',
-    date: '2025-07-22',
-    location: 'Bandung',
-    status: 'upcoming',
-    divisions: ['Recurve', 'Compound'],
-    participants: []
-  }
-];
-
-const initialUsers: UserProfile[] = [
-  {
-    id: '1',
-    name: 'Admin ArcherScore',
-    email: 'admin@archerscore.com',
-    role: 'admin',
-    joinDate: '2024-01-01'
-  },
-  {
-    id: '2',
-    name: 'Budi Santoso',
-    email: 'budi@email.com',
-    role: 'user',
-    division: 'Recurve',
-    club: 'Jakarta Archery Club',
-    joinDate: '2024-03-15'
-  },
-  {
-    id: '3',
-    name: 'Siti Rahayu',
-    email: 'siti@email.com',
-    role: 'user',
-    division: 'Compound',
-    club: 'Bandung Archery',
-    joinDate: '2024-02-20'
-  }
-];
-
-const initialScoreSessions: ScoreSession[] = [
-  {
-    id: '1',
-    userId: '2',
-    date: '2024-12-01',
-    arrows: [9, 8, 10, 9, 8, 7, 10, 9, 9, 8, 10, 9],
-    totalScore: 106,
-    xCount: 3,
-    division: 'Recurve',
-    distance: '70m',
-    notes: 'Good session'
-  },
-  {
-    id: '2',
-    userId: '2',
-    date: '2024-12-03',
-    arrows: [10, 9, 9, 8, 9, 8, 10, 8, 9, 9, 10, 8],
-    totalScore: 107,
-    xCount: 3,
-    division: 'Recurve',
-    distance: '70m'
-  }
-];
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [scoreSessions, setScoreSessions] = useState<ScoreSession[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  // Load data from Firebase on mount
+  // Load data from Supabase on mount
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load tournaments
-        const tournamentsSnapshot = await getDocs(collection(db, 'tournaments'));
-        const tournamentsData = tournamentsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Tournament[];
-        setTournaments(tournamentsData.length > 0 ? tournamentsData : initialTournaments);
-
-        // Load score sessions
-        const sessionsSnapshot = await getDocs(collection(db, 'scoreSessions'));
-        const sessionsData = sessionsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as ScoreSession[];
-        setScoreSessions(sessionsData.length > 0 ? sessionsData : initialScoreSessions);
-
-        // Load users
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const usersData = usersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as UserProfile[];
-        setUsers(usersData.length > 0 ? usersData : initialUsers);
-
-        // If no data exists, initialize with default data
-        if (tournamentsData.length === 0) {
-          for (const tournament of initialTournaments) {
-            await addDoc(collection(db, 'tournaments'), tournament);
-          }
-        }
-        if (sessionsData.length === 0) {
-          for (const session of initialScoreSessions) {
-            await addDoc(collection(db, 'scoreSessions'), session);
-          }
-        }
-        if (usersData.length === 0) {
-          for (const user of initialUsers) {
-            await addDoc(collection(db, 'users'), user);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading data from Firebase:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load data from Firebase. Using local data.",
-          variant: "destructive"
-        });
-        // Fallback to localStorage
-        const savedTournaments = localStorage.getItem('archerScore_tournaments');
-        const savedSessions = localStorage.getItem('archerScore_sessions');
-        const savedUsers = localStorage.getItem('archerScore_users');
-
-        setTournaments(savedTournaments ? JSON.parse(savedTournaments) : initialTournaments);
-        setScoreSessions(savedSessions ? JSON.parse(savedSessions) : initialScoreSessions);
-        setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
-      }
-    };
-
     loadData();
-  }, [toast]);
+  }, [user]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load tournaments
+      const { data: tournamentsData, error: tournamentsError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (tournamentsError) throw tournamentsError;
+      
+      const mappedTournaments: Tournament[] = (tournamentsData || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        date: t.date,
+        location: t.location,
+        status: t.status as 'upcoming' | 'ongoing' | 'completed',
+        divisions: t.divisions || [],
+        participants: t.participants || [],
+        created_by: t.created_by || undefined
+      }));
+      setTournaments(mappedTournaments);
+
+      // Load score sessions (user's own or all if admin)
+      if (user) {
+        const { data: sessionsData, error: sessionsError } = await supabase
+          .from('score_sessions')
+          .select('*')
+          .order('date', { ascending: false });
+
+        if (sessionsError) throw sessionsError;
+        
+        const mappedSessions: ScoreSession[] = (sessionsData || []).map(s => ({
+          id: s.id,
+          userId: s.user_id,
+          date: s.date,
+          arrows: s.arrows || [],
+          totalScore: s.total_score,
+          xCount: s.x_count,
+          division: s.division || '',
+          distance: s.distance || '',
+          notes: s.notes || undefined
+        }));
+        setScoreSessions(mappedSessions);
+      }
+
+      // Load profiles with roles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Get roles for each user
+      const profilesWithRoles: UserProfile[] = await Promise.all(
+        (profilesData || []).map(async (p) => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', p.user_id)
+            .maybeSingle();
+          
+          return {
+            id: p.id,
+            user_id: p.user_id,
+            name: p.name,
+            email: p.email,
+            role: (roleData?.role as 'admin' | 'user') || 'user',
+            division: p.division || undefined,
+            club: p.club || undefined,
+            created_at: p.created_at
+          };
+        })
+      );
+      setUsers(profilesWithRoles);
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data. Silakan refresh halaman.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Tournament methods
   const addTournament = async (tournament: Omit<Tournament, 'id'>) => {
     try {
-      const docRef = await addDoc(collection(db, 'tournaments'), tournament);
-      const newTournament = { ...tournament, id: docRef.id };
+      const { data, error } = await supabase
+        .from('tournaments')
+        .insert({
+          name: tournament.name,
+          date: tournament.date,
+          location: tournament.location,
+          status: tournament.status,
+          divisions: tournament.divisions,
+          participants: tournament.participants,
+          created_by: user?.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const newTournament: Tournament = {
+        id: data.id,
+        name: data.name,
+        date: data.date,
+        location: data.location,
+        status: data.status as 'upcoming' | 'ongoing' | 'completed',
+        divisions: data.divisions || [],
+        participants: data.participants || [],
+        created_by: data.created_by || undefined
+      };
+      
       setTournaments([...tournaments, newTournament]);
       toast({
-        title: "Success",
-        description: "Tournament added successfully"
+        title: "Sukses",
+        description: "Turnamen berhasil ditambahkan"
       });
     } catch (error) {
       console.error('Error adding tournament:', error);
       toast({
         title: "Error",
-        description: "Failed to add tournament",
+        description: "Gagal menambahkan turnamen",
         variant: "destructive"
       });
     }
@@ -248,17 +225,30 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateTournament = async (id: string, updatedTournament: Partial<Tournament>) => {
     try {
-      await updateDoc(doc(db, 'tournaments', id), updatedTournament);
+      const { error } = await supabase
+        .from('tournaments')
+        .update({
+          name: updatedTournament.name,
+          date: updatedTournament.date,
+          location: updatedTournament.location,
+          status: updatedTournament.status,
+          divisions: updatedTournament.divisions,
+          participants: updatedTournament.participants
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      
       setTournaments(tournaments.map(t => t.id === id ? { ...t, ...updatedTournament } : t));
       toast({
-        title: "Success",
-        description: "Tournament updated successfully"
+        title: "Sukses",
+        description: "Turnamen berhasil diperbarui"
       });
     } catch (error) {
       console.error('Error updating tournament:', error);
       toast({
         title: "Error",
-        description: "Failed to update tournament",
+        description: "Gagal memperbarui turnamen",
         variant: "destructive"
       });
     }
@@ -266,17 +256,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteTournament = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'tournaments', id));
+      const { error } = await supabase
+        .from('tournaments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
       setTournaments(tournaments.filter(t => t.id !== id));
       toast({
-        title: "Success",
-        description: "Tournament deleted successfully"
+        title: "Sukses",
+        description: "Turnamen berhasil dihapus"
       });
     } catch (error) {
       console.error('Error deleting tournament:', error);
       toast({
         title: "Error",
-        description: "Failed to delete tournament",
+        description: "Gagal menghapus turnamen",
         variant: "destructive"
       });
     }
@@ -285,18 +281,45 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Score session methods
   const addScoreSession = async (session: Omit<ScoreSession, 'id'>) => {
     try {
-      const docRef = await addDoc(collection(db, 'scoreSessions'), session);
-      const newSession = { ...session, id: docRef.id };
-      setScoreSessions([...scoreSessions, newSession]);
+      const { data, error } = await supabase
+        .from('score_sessions')
+        .insert({
+          user_id: session.userId,
+          date: session.date,
+          arrows: session.arrows,
+          total_score: session.totalScore,
+          x_count: session.xCount,
+          division: session.division,
+          distance: session.distance,
+          notes: session.notes
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const newSession: ScoreSession = {
+        id: data.id,
+        userId: data.user_id,
+        date: data.date,
+        arrows: data.arrows || [],
+        totalScore: data.total_score,
+        xCount: data.x_count,
+        division: data.division || '',
+        distance: data.distance || '',
+        notes: data.notes || undefined
+      };
+      
+      setScoreSessions([newSession, ...scoreSessions]);
       toast({
-        title: "Success",
-        description: "Score session saved successfully"
+        title: "Sukses",
+        description: "Sesi skor berhasil disimpan"
       });
     } catch (error) {
       console.error('Error adding score session:', error);
       toast({
         title: "Error",
-        description: "Failed to save score session",
+        description: "Gagal menyimpan sesi skor",
         variant: "destructive"
       });
     }
@@ -304,17 +327,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteScoreSession = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'scoreSessions', id));
+      const { error } = await supabase
+        .from('score_sessions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
       setScoreSessions(scoreSessions.filter(s => s.id !== id));
       toast({
-        title: "Success",
-        description: "Score session deleted successfully"
+        title: "Sukses",
+        description: "Sesi skor berhasil dihapus"
       });
     } catch (error) {
       console.error('Error deleting score session:', error);
       toast({
         title: "Error",
-        description: "Failed to delete score session",
+        description: "Gagal menghapus sesi skor",
         variant: "destructive"
       });
     }
@@ -324,60 +353,52 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return scoreSessions.filter(s => s.userId === userId);
   };
 
-  // User methods
-  const addUser = async (user: Omit<UserProfile, 'id'>) => {
-    try {
-      const docRef = await addDoc(collection(db, 'users'), user);
-      const newUser = { ...user, id: docRef.id };
-      setUsers([...users, newUser]);
-      toast({
-        title: "Success",
-        description: "User added successfully"
-      });
-    } catch (error) {
-      console.error('Error adding user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add user",
-        variant: "destructive"
-      });
-    }
+  // User methods (for admin)
+  const addUser = async (userProfile: Omit<UserProfile, 'id' | 'user_id' | 'created_at'>) => {
+    // Note: Users are created through authentication, not directly
+    toast({
+      title: "Info",
+      description: "Pengguna harus mendaftar melalui halaman registrasi"
+    });
   };
 
   const updateUser = async (id: string, updatedUser: Partial<UserProfile>) => {
     try {
-      await updateDoc(doc(db, 'users', id), updatedUser);
+      const userToUpdate = users.find(u => u.id === id);
+      if (!userToUpdate) throw new Error('User not found');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedUser.name,
+          division: updatedUser.division,
+          club: updatedUser.club
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      
       setUsers(users.map(u => u.id === id ? { ...u, ...updatedUser } : u));
       toast({
-        title: "Success",
-        description: "User updated successfully"
+        title: "Sukses",
+        description: "Profil pengguna berhasil diperbarui"
       });
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
         title: "Error",
-        description: "Failed to update user",
+        description: "Gagal memperbarui profil pengguna",
         variant: "destructive"
       });
     }
   };
 
   const deleteUser = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'users', id));
-      setUsers(users.filter(u => u.id !== id));
-      toast({
-        title: "Success",
-        description: "User deleted successfully"
-      });
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive"
-      });
-    }
+    // Note: Deleting users should be done through auth admin functions
+    toast({
+      title: "Info",
+      description: "Penghapusan pengguna harus dilakukan melalui admin backend"
+    });
   };
 
   // Analytics methods
@@ -457,7 +478,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       updateUser,
       deleteUser,
       getAnalytics,
-      getAllAnalytics
+      getAllAnalytics,
+      loading
     }}>
       {children}
     </DataContext.Provider>

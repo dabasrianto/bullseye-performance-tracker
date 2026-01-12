@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -9,52 +11,136 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  supabaseUser: SupabaseUser | null;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users data
-const mockUsers: Array<User & { password: string }> = [
-  { id: '1', name: 'Admin ArcherScore', email: 'admin@archerscore.com', password: 'admin123', role: 'admin' },
-  { id: '2', name: 'Budi Santoso', email: 'budi@email.com', password: 'user123', role: 'user' },
-  { id: '3', name: 'Siti Rahayu', email: 'siti@email.com', password: 'user123', role: 'user' },
-  { id: '4', name: 'Ahmad Fauzi', email: 'ahmad@email.com', password: 'user123', role: 'user' },
-];
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const savedUser = localStorage.getItem('archerScore_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setSupabaseUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch user profile and role
+          await fetchUserProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setSupabaseUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (email: string, password: string): boolean => {
-    const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-    if (foundUser) {
-      const userWithoutPassword = {
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-        role: foundUser.role
-      };
-      setUser(userWithoutPassword);
-      localStorage.setItem('archerScore_user', JSON.stringify(userWithoutPassword));
-      return true;
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      // Get profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      // Get role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (roleError) throw roleError;
+
+      if (profile) {
+        setUser({
+          id: userId,
+          name: profile.name,
+          email: profile.email,
+          role: (roleData?.role as 'admin' | 'user') || 'user'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setUser(null);
     }
-    return false;
   };
 
-  const logout = () => {
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.error('Login error:', error.message);
+        return false;
+      }
+
+      return !!data.user;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
+  };
+
+  const signup = async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: window.location.origin
+        }
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: !!data.user };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: 'Terjadi kesalahan saat mendaftar' };
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('archerScore_user');
+    setSupabaseUser(null);
+    setSession(null);
   };
 
   const isAuthenticated = !!user;
@@ -63,10 +149,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{ 
       user, 
+      supabaseUser,
+      session,
       login, 
+      signup,
       logout, 
       isAuthenticated, 
-      isAdmin 
+      isAdmin,
+      loading
     }}>
       {children}
     </AuthContext.Provider>
