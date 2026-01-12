@@ -37,6 +37,15 @@ export interface UserProfile {
   created_at: string;
 }
 
+export interface TournamentRegistration {
+  id: string;
+  tournament_id: string;
+  user_id: string;
+  division?: string;
+  registered_at: string;
+  status: string;
+}
+
 export interface AnalyticsData {
   totalSessions: number;
   averageScore: number;
@@ -52,6 +61,13 @@ interface DataContextType {
   addTournament: (tournament: Omit<Tournament, 'id'>) => Promise<void>;
   updateTournament: (id: string, tournament: Partial<Tournament>) => Promise<void>;
   deleteTournament: (id: string) => Promise<void>;
+  
+  // Tournament Registrations
+  registrations: TournamentRegistration[];
+  registerForTournament: (tournamentId: string, division?: string) => Promise<void>;
+  cancelRegistration: (tournamentId: string) => Promise<void>;
+  isRegistered: (tournamentId: string) => boolean;
+  getRegistrationCount: (tournamentId: string) => number;
   
   // Score Sessions
   scoreSessions: ScoreSession[];
@@ -79,6 +95,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [scoreSessions, setScoreSessions] = useState<ScoreSession[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [registrations, setRegistrations] = useState<TournamentRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -165,6 +182,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         })
       );
       setUsers(profilesWithRoles);
+
+      // Load tournament registrations
+      const { data: registrationsData, error: registrationsError } = await supabase
+        .from('tournament_registrations')
+        .select('*')
+        .order('registered_at', { ascending: false });
+
+      if (registrationsError) throw registrationsError;
+      setRegistrations(registrationsData || []);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -353,6 +379,95 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return scoreSessions.filter(s => s.userId === userId);
   };
 
+  // Tournament Registration methods
+  const registerForTournament = async (tournamentId: string, division?: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Anda harus login untuk mendaftar turnamen",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('tournament_registrations')
+        .insert({
+          tournament_id: tournamentId,
+          user_id: user.id,
+          division: division
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Info",
+            description: "Anda sudah terdaftar di turnamen ini",
+            variant: "default"
+          });
+          return;
+        }
+        throw error;
+      }
+
+      setRegistrations([data, ...registrations]);
+      toast({
+        title: "Sukses",
+        description: "Berhasil mendaftar turnamen"
+      });
+    } catch (error) {
+      console.error('Error registering for tournament:', error);
+      toast({
+        title: "Error",
+        description: "Gagal mendaftar turnamen",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const cancelRegistration = async (tournamentId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('tournament_registrations')
+        .delete()
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setRegistrations(registrations.filter(
+        r => !(r.tournament_id === tournamentId && r.user_id === user.id)
+      ));
+      toast({
+        title: "Sukses",
+        description: "Pendaftaran berhasil dibatalkan"
+      });
+    } catch (error) {
+      console.error('Error canceling registration:', error);
+      toast({
+        title: "Error",
+        description: "Gagal membatalkan pendaftaran",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const isRegistered = (tournamentId: string): boolean => {
+    if (!user) return false;
+    return registrations.some(
+      r => r.tournament_id === tournamentId && r.user_id === user.id
+    );
+  };
+
+  const getRegistrationCount = (tournamentId: string): number => {
+    return registrations.filter(r => r.tournament_id === tournamentId).length;
+  };
+
   // User methods (for admin)
   const addUser = async (userProfile: Omit<UserProfile, 'id' | 'user_id' | 'created_at'>) => {
     // Note: Users are created through authentication, not directly
@@ -469,6 +584,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTournament,
       updateTournament,
       deleteTournament,
+      registrations,
+      registerForTournament,
+      cancelRegistration,
+      isRegistered,
+      getRegistrationCount,
       scoreSessions,
       addScoreSession,
       deleteScoreSession,
