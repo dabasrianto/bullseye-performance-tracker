@@ -92,6 +92,41 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_registrations: {
+        Row: {
+          division: string | null
+          id: string
+          registered_at: string
+          status: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          division?: string | null
+          id?: string
+          registered_at?: string
+          status?: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          division?: string | null
+          id?: string
+          registered_at?: string
+          status?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           created_at: string
